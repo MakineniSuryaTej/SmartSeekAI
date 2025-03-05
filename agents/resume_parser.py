@@ -2,8 +2,8 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.models import get_llm
+from utils.prompts import Prompts
 import PyPDF2
-from langchain_openai import ChatOpenAI
 
 llm = get_llm()
 
@@ -15,7 +15,8 @@ class ResumeParser:
         return text
 
     def analyze_resume(text):
-        prompt = f"Extract skills, job titles, and experience from the following resume:\n\n{text}"
+        prompt = Prompts.key_details_extraction_prompt.format(text)
+        # print("llm invoked")
         response = llm.invoke(prompt)
         return response.content
     
