@@ -5,6 +5,7 @@ import asyncio
 from utils.models import get_llm
 from utils.prompts import Prompts
 from agents.resume_parser import ResumeParser
+from agents.search_jobs import SearchJobs
 from langchain import hub
 from langchain.agents import tool
 from langchain.schema.output_parser import StrOutputParser
@@ -55,9 +56,13 @@ async def main():
     agent_executor = AgentExecutor(agent=agent, tools=tools)
     task1_result = agent_executor.invoke({"input": query})
     print(task1_result["output"])
+    information = task1_result["output"]
 
     """TASK 2 Job Search based on resume"""
-
+    job_search_results = await SearchJobs.search_jobs(information=information, browser=browser)
+    parsed_jobs = SearchJobs.parse_results(job_search_results)
+    
+    print(parsed_jobs)
 
 if __name__ == '__main__':
     asyncio.run(main())
