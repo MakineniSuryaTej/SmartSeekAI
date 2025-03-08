@@ -304,7 +304,7 @@ def automate_site():
     username_element.send_keys(Details.email)
 
     password_element = wait.until(EC.presence_of_element_located((By.ID, "password")))
-    password_element.send_keys(Details.password + Keys.ENTER)
+    password_element.send_keys("Beena&1973" + Keys.ENTER)
 
     create_element = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'card') and .//div[contains(text(), 'Create a new resume')]]")))
     create_element.click()
