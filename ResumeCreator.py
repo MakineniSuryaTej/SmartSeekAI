@@ -14,41 +14,6 @@ from langchain_core.messages import SystemMessage, HumanMessage
 MODEL_NAME = "GPT4o"
 resume_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Resume.pdf')
 
-def select_date_from_picker(date, wait, driver):
-    # Find the parent div of the date input
-    date_wrapper = wait.until(EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'inputWrapper') and .//label[text()='Date']]")))
-
-    # Find the input element within the wrapper
-    date_input = date_wrapper.find_element(By.XPATH, ".//input[@type='text' and @readonly]")
-
-    # Scroll the element into view and click it using JavaScript
-    driver.execute_script("arguments[0].scrollIntoView(true);", date_input)
-    driver.execute_script("arguments[0].click();", date_input)
-
-    # Wait for the calendar to appear
-    wait.until(EC.visibility_of_element_located((By.CLASS_NAME, "flatpickr-calendar")))
-
-    # Parse the date
-    day, month, year = date.split(" ")
-
-    # Select the month
-    month_dropdown = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "flatpickr-monthDropdown-months")))
-    driver.execute_script("arguments[0].scrollIntoView(true);", month_dropdown)
-    Select(month_dropdown).select_by_visible_text(month)
-
-    # Enter the year
-    year_input = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, "numInput.cur-year")))
-    year_input.clear()
-    year_input.send_keys(year)
-    year_input.send_keys(Keys.ENTER)
-
-    # Select the day
-    day_xpath = f"//span[@class='flatpickr-day' and text()='{day}']" #f"//span[@class='flatpickr-day' and not(contains(@class, 'prevMonthDay')) and not(contains(@class, 'nextMonthDay')) and text()='{day}']"
-    day_button = wait.until(EC.element_to_be_clickable((By.XPATH, day_xpath)))
-    day_button.click()
-
-    # Wait for the calendar to close
-    wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "flatpickr-calendar")))
 
 def select_date(label_text, month, year, wait, driver):
     date_input = wait.until(EC.presence_of_element_located((By.XPATH, f"//label[text()='{label_text}']/following-sibling::div[@data-test='dateInput']")))
@@ -107,36 +72,25 @@ def add_skills(skills, wait):
         time.sleep(1)
 
 def add_certifications(certificates, wait, driver):
-    # Navigate to the Certificates section
     certificates_section = wait.until(EC.element_to_be_clickable((By.XPATH, "//span[text()='Certificates']")))
     driver.execute_script("arguments[0].scrollIntoView(true);", certificates_section)
     certificates_section.click()
-    time.sleep(1.5)  # Allow section to expand
+    time.sleep(1.5)
     
-    # For each certificate in the dictionary
     for cert_key, cert_data in certificates.items():
-        print(f"Adding certificate: {cert_key}")
-        
-        # Find the "Add Certificate" button
         add_button_xpath = "//button[contains(., 'Add Certificate')]"
         add_certificate_button = wait.until(EC.element_to_be_clickable((By.XPATH, add_button_xpath)))
         driver.execute_script("arguments[0].scrollIntoView(true);", add_certificate_button)
         add_certificate_button.click()
+        time.sleep(2)
         
-        # Wait for the new certificate section to fully load and expand
-        time.sleep(2)  # Increased wait time
-        
-        # Find the most recently opened certificate section
         open_sections = driver.find_elements(By.XPATH, "//div[contains(@class, 'collapsible') and contains(@class, 'open')]")
         if not open_sections:
             print("No open certificate sections found!")
             continue
             
-        open_section = open_sections[-1]  # Get the last (most recently added) open section
-        
-        # Fill in certificate details
+        open_section = open_sections[-1]  
         try:
-            # Handle name field
             if "name" in cert_data:
                 name_inputs = open_section.find_elements(By.ID, "name")
                 if name_inputs:
@@ -146,8 +100,6 @@ def add_certifications(certificates, wait, driver):
                     name_input.send_keys(cert_data["name"])
                 else:
                     print("Name input not found!")
-            
-            # Handle issuer field
             if "issuer" in cert_data:
                 issuer_inputs = open_section.find_elements(By.ID, "issuer")
                 if issuer_inputs:
@@ -157,8 +109,6 @@ def add_certifications(certificates, wait, driver):
                     issuer_input.send_keys(cert_data["issuer"])
                 else:
                     print("Issuer input not found!")
-            
-            # Handle URL field
             if "url" in cert_data:
                 url_inputs = open_section.find_elements(By.ID, "url")
                 if url_inputs:
@@ -168,20 +118,13 @@ def add_certifications(certificates, wait, driver):
                     url_input.send_keys(cert_data["url"])
                 else:
                     print("URL input not found!")
-            
-            # Handle date field with more robust approach
             if "date" in cert_data:
-                # Find date field using multiple strategies
                 date_inputs = open_section.find_elements(By.XPATH, ".//input[@type='text' and @readonly]")
-                
                 if not date_inputs:
                     print("No date inputs found in this section!")
                     continue
-                
-                # Get the date input - likely the one near a "Date" label
                 date_input = None
                 for input_elem in date_inputs:
-                    # Try to find a nearby "Date" label
                     parent = input_elem.find_element(By.XPATH, "./ancestor::div[contains(@class, 'inputWrapper')]")
                     labels = parent.find_elements(By.XPATH, ".//label")
                     for label in labels:
@@ -190,40 +133,30 @@ def add_certifications(certificates, wait, driver):
                             break
                     if date_input:
                         break
-                
-                # If we still can't find it, take the first readonly input
                 if not date_input and date_inputs:
                     date_input = date_inputs[0]
                 
                 if not date_input:
                     print("Could not identify date input field!")
                     continue
-                
-                print(f"  Setting date: {cert_data['date']}")
-                
-                # Try multiple click strategies
+
                 driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", date_input)
                 time.sleep(0.5)
                 
-                # First try JavaScript click
                 driver.execute_script("arguments[0].click();", date_input)
                 time.sleep(1)
                 
-                # Check if calendar appeared
                 calendars = driver.find_elements(By.CLASS_NAME, "flatpickr-calendar")
                 if not calendars or not any(cal.is_displayed() for cal in calendars):
-                    # Try regular click if JS click didn't work
                     try:
                         date_input.click()
                         time.sleep(1)
                     except:
                         print("Failed to click date input!")
-                
-                # Check again if calendar appeared
+
                 calendars = driver.find_elements(By.CLASS_NAME, "flatpickr-calendar")
                 if not calendars or not any(cal.is_displayed() for cal in calendars):
                     print("Calendar did not appear after clicking date input!")
-                    # Try a different approach - send a Tab key to move focus, then Space to activate
                     try:
                         date_input.send_keys(Keys.TAB)
                         time.sleep(0.5)
@@ -232,31 +165,26 @@ def add_certifications(certificates, wait, driver):
                     except:
                         print("Alternative click method also failed")
                         continue
-                
-                # One more check for calendar
+
                 calendars = driver.find_elements(By.CLASS_NAME, "flatpickr-calendar")
                 if not calendars or not any(cal.is_displayed() for cal in calendars):
                     print("Could not open calendar - skipping date for this certificate")
                     continue
-                
-                # Calendar is now open - get the displayed one
+
                 calendar = next(cal for cal in calendars if cal.is_displayed())
-                
-                # Parse the date
+
                 parts = cert_data["date"].split(" ")
                 day = parts[0]
                 month = parts[1]
                 year = parts[2]
-                
-                # Select month from dropdown
+
                 try:
                     month_dropdown = calendar.find_element(By.CLASS_NAME, "flatpickr-monthDropdown-months")
                     Select(month_dropdown).select_by_visible_text(month)
                     time.sleep(0.5)
                 except:
                     print("Failed to select month")
-                
-                # Enter year
+
                 try:
                     year_input = calendar.find_element(By.CLASS_NAME, "numInput.cur-year")
                     year_input.clear()
@@ -265,14 +193,10 @@ def add_certifications(certificates, wait, driver):
                     time.sleep(0.5)
                 except:
                     print("Failed to enter year")
-                
-                # Find and click the day
+
                 try:
-                    # Get all day elements in the current month view
-                    day_buttons = calendar.find_elements(By.XPATH, 
-                        ".//span[contains(@class, 'flatpickr-day') and not(contains(@class, 'prevMonthDay')) and not(contains(@class, 'nextMonthDay'))]")
-                    
-                    # Find the one with matching text
+                    day_buttons = calendar.find_elements(By.XPATH,".//span[contains(@class, 'flatpickr-day') and not(contains(@class, 'prevMonthDay')) and not(contains(@class, 'nextMonthDay'))]")
+
                     for btn in day_buttons:
                         if btn.text.strip() == str(int(day)):
                             btn.click()
@@ -281,14 +205,12 @@ def add_certifications(certificates, wait, driver):
                         print(f"Day {day} not found in calendar!")
                 except Exception as e:
                     print(f"Error selecting day: {str(e)}")
-                
-                # Wait for calendar to close
+
                 time.sleep(1)
                 
         except Exception as e:
             print(f"Error filling certificate {cert_key}: {str(e)}")
-        
-        # Wait between certificates
+
         time.sleep(2)
 
 
@@ -362,6 +284,8 @@ def automate_site():
     add_skills(skills, wait)
 
     add_certifications(Details.certificates, wait, driver)
+
+
 
     time.sleep(30)
     driver.quit()
