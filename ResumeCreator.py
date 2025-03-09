@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import json
 from selenium import webdriver
@@ -442,7 +443,7 @@ def automate_site(resume_info):
     driver.quit()
 
 def get_updated_resume(information):
-    llm = get_llm()
+    llm = get_llm("GPT4o")
     prompt_with_job = Details.human_prompt.replace("{0}", Details.job_description)
     final_prompt = prompt_with_job.replace("{1}", information)
     messages = [
@@ -451,7 +452,18 @@ def get_updated_resume(information):
     ]
     response = llm.invoke(messages).content.replace("json","")
     print(response)
-    return json.loads(response)
+    json_match = re.search(r'\{.*\}', response, re.DOTALL)
+    if json_match:
+        json_str = json_match.group()
+        try:
+            # Try to parse the extracted JSON
+            return json.loads(json_str)
+        except json.JSONDecodeError as e:
+            print(f"JSON parsing error: {e}")
+            print("Extracted JSON string:")
+            print(json_str)
+    else:
+        print("No JSON object found in the response")
 
 resume_information = rp.extract_resume(resume_path)
 print("INFORMATION READ")
