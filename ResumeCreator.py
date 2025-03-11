@@ -364,7 +364,7 @@ def automate_site(resume_info):
     username_element.send_keys(Details.email)
 
     password_element = wait.until(EC.presence_of_element_located((By.ID, "password")))
-    password_element.send_keys("Beena&1973" + Keys.ENTER)
+    password_element.send_keys(Details.password + Keys.ENTER)
 
     create_element = wait.until(EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'card') and .//div[contains(text(), 'Create a new resume')]]")))
     create_element.click()
@@ -466,8 +466,9 @@ def get_updated_resume(information):
         print("No JSON object found in the response")
 
 resume_information = rp.extract_resume(resume_path)
-print("INFORMATION READ")
+print("RESUME INFORMATION READ")
 updated_resume_information = get_updated_resume(resume_information)
 print(updated_resume_information)
-print(type(updated_resume_information))
+print("CREATING RESUME")
+# print(type(updated_resume_information))
 automate_site(updated_resume_information)
